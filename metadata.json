@@ -1,0 +1,9 @@
+{
+  "name": " bymorozov.reels.text.new",
+  "description": "текстовые рилс за 1 минуту",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
