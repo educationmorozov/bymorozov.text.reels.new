@@ -1,5 +1,5 @@
 {
-  "name": " bymorozov.reels.text.new",
+  "name": "bymorozov.text.reels",
   "description": "текстовые рилс за 1 минуту",
   "requestFramePermissions": [
     "camera",
