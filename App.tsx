@@ -80,14 +80,35 @@ const VideoPreview = ({
   generatedImage?: string | null;
   isExport?: boolean;
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(isExport ? 1 : 1);
+
+  useEffect(() => {
+    if (isExport) {
+      setScale(1);
+      return;
+    }
+
+    const updateScale = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.clientWidth;
+        setScale(width / 1080);
+      }
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    if (containerRef.current) observer.observe(containerRef.current);
+    
+    return () => observer.disconnect();
+  }, [isExport]);
+
   const { 
     generatedText, format, showTitleBox, fontPair, 
     customTitleFont, customBodyFont, titleFontSize, bodyFontSize, 
     titleLineHeight, bodyLineHeight, nickname, nicknameVerticalPos,
     quoteAlignment, titleAlignment, listAlignment, quoteVerticalPos, quoteFont, listVerticalPos, showSafeZones
   } = state;
-
-  const scale = isExport ? 1 : 340 / 1080;
 
   const lines = generatedText ? generatedText.split('\n').map(l => l.trim()).filter(l => l.length > 0) : [];
   const title = lines[0] || '';
@@ -152,8 +173,8 @@ const VideoPreview = ({
           
           <div style={{ 
             marginTop: `${24 * scale}px`, 
-            paddingLeft: '8%', 
-            paddingRight: '25%',
+            paddingLeft: '10%', 
+            paddingRight: '10%',
           }}>
             {contentLines.map((line, idx) => (
               <div 
@@ -207,6 +228,7 @@ const VideoPreview = ({
 
   return (
     <div 
+      ref={containerRef}
       className={`overflow-hidden ${isExport ? 'w-[1080px] h-[1920px] relative' : 'absolute inset-0'}`} 
       style={{ backgroundColor: containerBg }}
     >
@@ -350,19 +372,12 @@ const App: React.FC = () => {
             bgImg.onerror = resolve;
           });
         }
-        if (bgImg.decode) {
-          await bgImg.decode().catch(() => {});
-        }
       }
-
-      // Форсируем перерисовку
-      // @ts-ignore
-      const _ = exportRef.current.offsetHeight;
 
       const options = {
         width: 1080,
         height: 1920,
-        pixelRatio: 1.5,
+        pixelRatio: 1, // Используем 1 для точности, так как контейнер и так 1080
         cacheBust: true,
         useCORS: true,
         backgroundColor: '#000000',
@@ -374,13 +389,7 @@ const App: React.FC = () => {
         }
       };
 
-      // 3. Цикл прогрева (несколько холостых рендеров)
-      await window.htmlToImage.toPng(exportRef.current, { ...options, pixelRatio: 0.1 });
-      await new Promise(r => setTimeout(r, 600));
-      await window.htmlToImage.toPng(exportRef.current, { ...options, pixelRatio: 0.1 });
-      await new Promise(r => setTimeout(r, 600));
-
-      // 4. Финальный рендер
+      // 3. Генерация
       const dataUrl = await window.htmlToImage.toPng(exportRef.current, options);
       
       const link = document.createElement('a');
