@@ -107,10 +107,11 @@ const VideoPreview = ({
     generatedText, format, showTitleBox, fontPair, 
     customTitleFont, customBodyFont, titleFontSize, bodyFontSize, 
     titleLineHeight, bodyLineHeight, nickname, nicknameVerticalPos,
-    quoteAlignment, titleAlignment, listAlignment, quoteVerticalPos, quoteFont, listVerticalPos, showSafeZones
+    quoteAlignment, titleAlignment, listAlignment, quoteVerticalPos, quoteFont, listVerticalPos, showSafeZones,
+    titleBodySpacing
   } = state;
 
-  const lines = generatedText ? generatedText.split('\n').map(l => l.trim()).filter(l => l.length > 0) : [];
+  const lines = generatedText ? generatedText.split('\n').map(l => l.trim()) : [];
   const title = lines[0] || '';
   const contentLines = lines.slice(1);
 
@@ -119,9 +120,11 @@ const VideoPreview = ({
 
   const fonts = useMemo(() => {
     if (format === TextFormat.QUOTE) {
+      // Allow using FONT_PAIRS for QUOTE as well if a pair is selected
+      const isPairActive = Object.values(FontPair).includes(fontPair) && fontPair !== FontPair.CUSTOM;
       return {
-        fontFamily: quoteFont === 'custom' ? customBodyFont : activeQuoteFont?.family,
-        fontWeight: quoteFont === 'custom' ? 400 : activeQuoteFont?.weight
+        fontFamily: isPairActive ? activeFontConfig.bodyFamily : (quoteFont === 'custom' ? customBodyFont : activeQuoteFont?.family),
+        fontWeight: isPairActive ? 400 : (quoteFont === 'custom' ? 400 : activeQuoteFont?.weight)
       };
     } else {
       return {
@@ -133,6 +136,11 @@ const VideoPreview = ({
 
   const renderContent = () => {
     if (!generatedText) return null;
+
+    const enhancementStyle = state.bodyTextShadow ? { 
+      fontWeight: 600,
+      filter: 'contrast(1.2)'
+    } : {};
 
     if (format === TextFormat.LIST) {
       const listAlignCls = listAlignment === 'center' ? 'text-center' : listAlignment === 'justify' ? 'text-justify' : 'text-left';
@@ -154,7 +162,7 @@ const VideoPreview = ({
               paddingTop: `${24 * scale}px`,
               paddingBottom: `${24 * scale}px`,
               paddingLeft: '10%',
-              paddingRight: '10%'
+              paddingRight: '18%' // Safety zone
             }}
           >
             <h2 
@@ -164,7 +172,8 @@ const VideoPreview = ({
                 fontSize: `${titleFontSize * scale}px`, 
                 lineHeight: titleLineHeight,
                 fontFamily: (fonts as any).titleFamily,
-                fontWeight: 700
+                fontWeight: 700,
+                wordBreak: 'break-word'
               }}
             >
               <FormattedText text={title} />
@@ -172,9 +181,9 @@ const VideoPreview = ({
           </div>
           
           <div style={{ 
-            marginTop: `${24 * scale}px`, 
+            marginTop: `${titleBodySpacing * scale}px`, 
             paddingLeft: '10%', 
-            paddingRight: '10%',
+            paddingRight: '18%', // Right safety zone is 18%
           }}>
             {contentLines.map((line, idx) => (
               <div 
@@ -185,7 +194,10 @@ const VideoPreview = ({
                   lineHeight: bodyLineHeight, 
                   fontFamily: (fonts as any).bodyFamily,
                   fontWeight: 400,
-                  marginBottom: `${16 * scale}px`
+                  marginBottom: `${16 * scale}px`,
+                  wordBreak: 'break-word',
+                  minHeight: line === '' ? `${bodyLineHeight}em` : 'auto',
+                  ...enhancementStyle
                 }}
               >
                 <FormattedText text={line} />
@@ -213,18 +225,31 @@ const VideoPreview = ({
               fontSize: `${bodyFontSize * scale}px`, 
               lineHeight: bodyLineHeight,
               fontFamily: (fonts as any).fontFamily,
-              fontWeight: (fonts as any).fontWeight
+              fontWeight: (fonts as any).fontWeight,
+              ...enhancementStyle
             }}
           >
-            {lines.map((l, i) => <div key={i} style={{ marginBottom: `${24 * scale}px` }}><FormattedText text={l} /></div>)}
+            {lines.map((l, i) => (
+              <div 
+                key={i} 
+                style={{ 
+                  marginBottom: `${24 * scale}px`,
+                  wordBreak: 'break-word',
+                  minHeight: l === '' ? `${bodyLineHeight}em` : 'auto'
+                }}
+              >
+                <FormattedText text={l} />
+              </div>
+            ))}
           </div>
         </div>
       );
     }
   };
 
-  const isCustomPhoto = state.themeId === 'custom_photo' && generatedImage;
-  const containerBg = isCustomPhoto ? '#000000' : (theme.bg || '#000000');
+  const isCustomPhoto = state.themeId === 'custom_photo' && generatedImage && state.backgroundType === 'IMAGE';
+  const isCustomVideo = state.themeId === 'custom_photo' && generatedImage && state.backgroundType === 'VIDEO';
+  const containerBg = (isCustomPhoto || isCustomVideo) ? '#000000' : (theme.bg || '#000000');
 
   return (
     <div 
@@ -233,7 +258,7 @@ const VideoPreview = ({
       style={{ backgroundColor: containerBg }}
     >
       {isCustomPhoto && (
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 text-center">
           <img 
             src={generatedImage} 
             alt="" 
@@ -243,7 +268,31 @@ const VideoPreview = ({
             decoding="sync"
             loading="eager"
           />
-          <div className="absolute inset-0 bg-black/60 z-10"></div>
+          <div className="absolute inset-0 z-10" style={{ backgroundColor: `rgba(0,0,0,${state.bgOpacity})` }}></div>
+        </div>
+      )}
+      {isCustomVideo && (
+        <div className="absolute inset-0 z-0">
+          <video 
+            src={generatedImage} 
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 z-10" style={{ backgroundColor: `rgba(0,0,0,${state.bgOpacity})` }}></div>
+        </div>
+      )}
+      {state.themeId === 'book' && (
+        <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+          <img 
+            src="https://lh3.googleusercontent.com/d/17M_WJIdsv8wbvP5W_wlFjeuFFcq5obyd" 
+            className="w-full h-full object-cover"
+            alt="Book theme background"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+          />
         </div>
       )}
       <div className="absolute inset-0 z-20 pointer-events-none">
@@ -324,8 +373,11 @@ const App: React.FC = () => {
     customThemeColors: { id: 'custom_hex', bg: '#08080c', box: '#3b82f6', boxText: '#FFFFFF', bodyText: '#FFFFFF' },
     customTitleFont: '', customBodyFont: '',
     titleFontSize: 48, bodyFontSize: 28, titleLineHeight: 1.1, bodyLineHeight: 1.4,
-    nicknameVerticalPos: 20, titleAlignment: 'center', quoteAlignment: 'center', listAlignment: 'left', quoteVerticalPos: 0, quoteFont: 'manrope-light',
-    listVerticalPos: 0
+    nicknameVerticalPos: 20, titleAlignment: 'left', quoteAlignment: 'center', listAlignment: 'left', quoteVerticalPos: 0, quoteFont: 'manrope-light',
+    listVerticalPos: 0,
+    bgOpacity: 0.6,
+    titleBodySpacing: 24,
+    bodyTextShadow: false
   });
 
   const currentTheme = useMemo(() => {
@@ -333,6 +385,24 @@ const App: React.FC = () => {
     if (state.themeId === 'custom_photo') return { ...state.customThemeColors, bg: 'transparent' };
     return THEMES.find(t => t.id === state.themeId) || THEMES[1];
   }, [state.themeId, state.customThemeColors]);
+
+  useEffect(() => {
+    if (state.themeId === 'book') {
+      setState(p => ({
+        ...p,
+        showTitleBox: false,
+        fontPair: FontPair.MERRIWEATHER_OPEN,
+        bodyTextShadow: true,
+        titleBodySpacing: -35
+      }));
+      if (state.format === TextFormat.LIST) {
+        setState(p => ({
+          ...p,
+          listVerticalPos: 492
+        }));
+      }
+    }
+  }, [state.themeId]);
 
   const handleNext = () => {
     setCurrentStep(prev => Math.min(prev + 1, 4));
@@ -346,12 +416,16 @@ const App: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setGeneratedImage(ev.target?.result as string);
-        setState(p => ({ ...p, themeId: 'custom_photo', backgroundType: 'IMAGE' }));
-      };
-      reader.readAsDataURL(file);
+      const type = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE';
+      
+      // Cleanup old URL if any to prevent memory leaks
+      if (generatedImage?.startsWith('blob:')) {
+        URL.revokeObjectURL(generatedImage);
+      }
+
+      const url = URL.createObjectURL(file);
+      setGeneratedImage(url);
+      setState(p => ({ ...p, themeId: 'custom_photo', backgroundType: type as any }));
     }
   };
 
@@ -552,14 +626,29 @@ const App: React.FC = () => {
 
               <div className="space-y-10 pt-4 text-center">
                 <label className="text-[11px] font-black uppercase tracking-[0.4em] text-white/20 block">Цветовая гамма</label>
+                
+                {state.themeId === 'custom_photo' && (
+                  <div className="max-w-xs mx-auto pb-4 animate-step">
+                    <ControlSlider 
+                      label="Затемнение фона" 
+                      value={state.bgOpacity} 
+                      min={0} 
+                      max={1} 
+                      step={0.01} 
+                      onChange={(v: number) => setState(p => ({ ...p, bgOpacity: v }))} 
+                    />
+                  </div>
+                )}
+
                 <div className="flex justify-center flex-wrap gap-x-6 gap-y-10">
                   {THEMES.map(t => (
                     <div key={t.id} className="flex flex-col items-center gap-2">
                       <button 
                         onClick={() => setState(p => ({ ...p, themeId: t.id }))} 
-                        className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${state.themeId === t.id ? 'border-blue-500 scale-110' : 'border-white/10'}`} 
+                        className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${state.themeId === t.id ? 'border-blue-500 scale-110 shadow-lg shadow-blue-500/20' : 'border-white/10 opacity-60 hover:opacity-100'}`} 
                         style={{ backgroundColor: t.bg }} 
                       />
+                      <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">{t.name}</span>
                     </div>
                   ))}
                   <div className="flex flex-col items-center gap-2">
@@ -575,13 +664,13 @@ const App: React.FC = () => {
                   <div className="flex flex-col items-center gap-2">
                     <button 
                       onClick={() => fileInputRef.current?.click()} 
-                      className={`w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center text-[7px] font-black tracking-tighter ${state.themeId === 'custom_photo' ? 'border-white text-white' : 'border-white/10 text-white/20'}`}
+                      className={`w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center text-[7px] font-black tracking-tighter transition-all ${state.themeId === 'custom_photo' ? 'border-blue-500 text-blue-500 scale-110' : 'border-white/10 text-white/20'}`}
                     >
-                      FOTO
+                      FILE
                     </button>
-                    <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Свое фото</span>
+                    <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Свой фон</span>
                   </div>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileUpload} className="hidden" />
                 </div>
 
                 {(state.themeId === 'custom_hex' || state.themeId === 'custom_photo') && (
@@ -602,29 +691,26 @@ const App: React.FC = () => {
 
               <div className="pt-10 border-t border-white/5 space-y-6">
                 <label className="text-[11px] font-black uppercase tracking-[0.4em] text-white/20 block text-center">Шрифт</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {state.format === TextFormat.LIST ? (
-                    Object.entries(FONT_PAIRS).map(([key, config]) => (
-                      <button 
-                        key={key} 
-                        onClick={() => setState(p => ({ ...p, fontPair: key as FontPair }))}
-                        className={`p-4 rounded-xl border transition-all text-left ${state.fontPair === key ? 'border-white bg-white/10' : 'border-white/5 text-white/20'}`}
-                      >
-                        <div className={`text-[12px] mb-1 ${config.titleClass}`}>{config.label.split(' + ')[0]}</div>
-                        <div className={`text-[9px] opacity-60 ${config.bodyClass}`}>{config.label.split(' + ')[1]}</div>
-                      </button>
-                    ))
-                  ) : (
-                    QUOTE_FONTS.map(f => (
-                      <button 
-                        key={f.id} 
-                        onClick={() => setState(p => ({ ...p, quoteFont: f.id }))}
-                        className={`p-4 rounded-xl border transition-all text-left ${state.quoteFont === f.id ? 'border-white bg-white/10' : 'border-white/5 text-white/20'}`}
-                      >
-                        <div className={`text-[12px] ${f.fontClass}`}>{f.label}</div>
-                      </button>
-                    ))
-                  )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {Object.entries(FONT_PAIRS).map(([key, config]) => (
+                    <button 
+                      key={key} 
+                      onClick={() => setState(p => ({ ...p, fontPair: key as FontPair, quoteFont: '' }))}
+                      className={`p-4 rounded-xl border transition-all text-left ${state.fontPair === key ? 'border-white bg-white/10' : 'border-white/5 text-white/20'}`}
+                    >
+                      <div className={`text-[12px] mb-1 ${config.titleClass}`}>{config.label.split(' + ')[0]}</div>
+                      <div className={`text-[9px] opacity-60 ${config.bodyClass}`}>{config.label.split(' + ')[1]}</div>
+                    </button>
+                  ))}
+                  {state.format === TextFormat.QUOTE && QUOTE_FONTS.map(f => (
+                    <button 
+                      key={f.id} 
+                      onClick={() => setState(p => ({ ...p, quoteFont: f.id, fontPair: FontPair.CUSTOM }))}
+                      className={`p-4 rounded-xl border transition-all text-left ${state.quoteFont === f.id ? 'border-white bg-white/10' : 'border-white/5 text-white/20'}`}
+                    >
+                      <div className={`text-[12px] ${f.fontClass}`}>{f.label}</div>
+                    </button>
+                  ))}
                   <button 
                       onClick={() => setState(p => ({ ...p, fontPair: state.format === TextFormat.LIST ? FontPair.CUSTOM : p.fontPair, quoteFont: state.format === TextFormat.QUOTE ? 'custom' : p.quoteFont }))}
                       className={`p-4 rounded-xl border transition-all text-left ${isCustomFontActive() ? 'border-blue-500 bg-blue-500/10' : 'border-white/5 text-white/20'}`}
@@ -699,6 +785,19 @@ const App: React.FC = () => {
                   <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-6">
                     <h4 className="text-[9px] font-black uppercase tracking-widest text-white/20 border-b border-white/5 pb-2">Позиционирование</h4>
                     <ControlSlider label="Вертикаль контента" value={state.format === TextFormat.LIST ? state.listVerticalPos : state.quoteVerticalPos} min={-800} max={800} step={1} onChange={(v: number) => setState(p => ({...p, [state.format === TextFormat.LIST ? 'listVerticalPos' : 'quoteVerticalPos']: v}))} />
+                    {state.format === TextFormat.LIST && (
+                      <ControlSlider label="Расстояние до текста" value={state.titleBodySpacing} min={-200} max={400} step={1} onChange={(v: number) => setState(p => ({...p, titleBodySpacing: v}))} unit="px" />
+                    )}
+                    
+                    <div className="flex items-center justify-between pt-2">
+                       <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Четкость текста</span>
+                       <button 
+                         onClick={() => setState(p => ({ ...p, bodyTextShadow: !p.bodyTextShadow }))}
+                         className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${state.bodyTextShadow ? 'bg-blue-600' : 'bg-white/10'}`}
+                       >
+                         <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 ${state.bodyTextShadow ? 'translate-x-6' : 'translate-x-0'}`} />
+                       </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -4,7 +4,7 @@ export enum TextFormat {
   LIST = 'LIST'
 }
 
-export type BackgroundType = 'COLOR' | 'IMAGE';
+export type BackgroundType = 'COLOR' | 'IMAGE' | 'VIDEO';
 
 export enum FontPair {
   PROSTO_PT = 'PROSTO_PT',
@@ -12,6 +12,11 @@ export enum FontPair {
   SOYUZX_NOTO = 'SOYUZX_NOTO',
   UNBOUNDED_IBM = 'UNBOUNDED_IBM',
   DAYS_OPEN = 'DAYS_OPEN',
+  GARAMOND_PLAYFAIR = 'GARAMOND_PLAYFAIR',
+  LORA_MONTSERRAT = 'LORA_MONTSERRAT',
+  PTSERIF_PTSANS = 'PTSERIF_PTSANS',
+  MERRIWEATHER_OPEN = 'MERRIWEATHER_OPEN',
+  CRIMSON_LATO = 'CRIMSON_LATO',
   CUSTOM = 'CUSTOM'
 }
 
@@ -21,6 +26,7 @@ export interface ThemeColors {
   box: string;
   boxText: string;
   bodyText: string;
+  name?: string;
 }
 
 export interface ProjectState {
@@ -51,6 +57,9 @@ export interface ProjectState {
   quoteFont: string;
   // List specific vertical position
   listVerticalPos: number;
+  bgOpacity: number;
+  titleBodySpacing: number;
+  bodyTextShadow: boolean;
 }
 
 export interface ChatMessage {

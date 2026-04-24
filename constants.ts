@@ -2,10 +2,11 @@
 import { TextFormat, ThemeColors, FontPair } from './types';
 
 export const THEMES: ThemeColors[] = [
-  { id: 'white', bg: '#FFFFFF', box: '#000000', boxText: '#FFFFFF', bodyText: '#000000' },
-  { id: 'black', bg: '#000000', box: '#FFFFFF', boxText: '#000000', bodyText: '#FFFFFF' },
-  { id: 'cream', bg: '#FFECD1', box: '#3E000C', boxText: '#FFECD1', bodyText: '#3E000C' },
-  { id: 'manual', bg: '#374039', box: '#f0f2f1', boxText: '#374039', bodyText: '#f0f2f1' },
+  { id: 'white', bg: '#FFFFFF', box: '#000000', boxText: '#FFFFFF', bodyText: '#000000', name: 'Белый' },
+  { id: 'black', bg: '#000000', box: '#FFFFFF', boxText: '#000000', bodyText: '#FFFFFF', name: 'Черный' },
+  { id: 'cream', bg: '#FFECD1', box: '#3E000C', boxText: '#FFECD1', bodyText: '#3E000C', name: 'Крем' },
+  { id: 'book', bg: '#fdfbf7', box: '#2c2c2c', boxText: '#fdfbf7', bodyText: '#2c2c2c', name: 'Книга' },
+  { id: 'manual', bg: '#374039', box: '#f0f2f1', boxText: '#374039', bodyText: '#f0f2f1', name: 'Мануал' },
 ];
 
 export const FONT_PAIRS = {
@@ -36,6 +37,41 @@ export const FONT_PAIRS = {
     bodyClass: 'font-inter-light',
     titleFamily: "'Days One', sans-serif",
     bodyFamily: "'Inter', sans-serif"
+  },
+  [FontPair.GARAMOND_PLAYFAIR]: {
+    label: 'PLAYFAIR + GARAMOND',
+    titleClass: 'font-playfair',
+    bodyClass: 'font-garamond',
+    titleFamily: "'Playfair Display', serif",
+    bodyFamily: "'EB Garamond', serif"
+  },
+  [FontPair.LORA_MONTSERRAT]: {
+    label: 'MONTSERRAT + LORA',
+    titleClass: 'font-montserrat',
+    bodyClass: 'font-lora',
+    titleFamily: "'Montserrat', sans-serif",
+    bodyFamily: "'Lora', serif"
+  },
+  [FontPair.PTSERIF_PTSANS]: {
+    label: 'PT SANS + PT SERIF',
+    titleClass: 'font-ptsans',
+    bodyClass: 'font-ptserif',
+    titleFamily: "'PT Sans', sans-serif",
+    bodyFamily: "'PT Serif', serif"
+  },
+  [FontPair.MERRIWEATHER_OPEN]: {
+    label: 'OPEN SANS + MERRIWEATHER',
+    titleClass: 'font-opensans',
+    bodyClass: 'font-merriweather',
+    titleFamily: "'Open Sans', sans-serif",
+    bodyFamily: "'Merriweather', serif"
+  },
+  [FontPair.CRIMSON_LATO]: {
+    label: 'LATO + CRIMSON',
+    titleClass: 'font-lato',
+    bodyClass: 'font-crimson',
+    titleFamily: "'Lato', sans-serif",
+    bodyFamily: "'Crimson Text', serif"
   },
   [FontPair.BUYAN_MANROPE]: {
     label: 'OSWALD + COMFORTAA',
