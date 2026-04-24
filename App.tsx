@@ -280,6 +280,7 @@ const VideoPreview = ({
             loop 
             playsInline
             className="w-full h-full object-cover"
+            crossOrigin="anonymous"
           />
           <div className="absolute inset-0 z-10" style={{ backgroundColor: `rgba(0,0,0,${state.bgOpacity})` }}></div>
         </div>
@@ -434,24 +435,56 @@ const App: React.FC = () => {
     setIsSaving(true);
     
     try {
-      // 1. Ждем загрузки шрифтов
+      // 1. Ждем немного для стабилизации UI
+      await new Promise(r => setTimeout(r, 500));
+      
+      // 2. Ждем загрузки шрифтов
       await document.fonts.ready;
       
-      // 2. Ждем и декодируем картинку
-      const bgImg = exportRef.current.querySelector('img');
-      if (bgImg) {
-        if (!bgImg.complete || bgImg.naturalWidth === 0) {
-          await new Promise((resolve) => {
-            bgImg.onload = resolve;
-            bgImg.onerror = resolve;
-          });
+      // 3. Обработка видео (html-to-image не умеет снимать видео)
+      const video = exportRef.current.querySelector('video');
+      let tempImg: HTMLImageElement | null = null;
+      
+      if (video) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 1080;
+          canvas.height = video.videoHeight || 1920;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frameUrl = canvas.toDataURL('image/png');
+            
+            tempImg = document.createElement('img');
+            tempImg.src = frameUrl;
+            tempImg.className = video.className;
+            tempImg.style.cssText = video.style.cssText;
+            tempImg.style.display = 'block';
+            tempImg.style.objectFit = 'cover';
+            
+            // Временно заменяем видео на статический кадр
+            video.parentElement?.insertBefore(tempImg, video);
+            video.style.display = 'none';
+          }
+        } catch (vErr) {
+          console.error('Failed to capture video frame', vErr);
         }
       }
+      
+      // 4. Ждем и декодируем все картинки в контейнере
+      const images = Array.from(exportRef.current.querySelectorAll('img'));
+      await Promise.all(images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
 
       const options = {
         width: 1080,
         height: 1920,
-        pixelRatio: 1, // Используем 1 для точности, так как контейнер и так 1080
+        pixelRatio: 1.5, // 1.5 - баланс между качеством и производительностью
         cacheBust: true,
         useCORS: true,
         backgroundColor: '#000000',
@@ -463,16 +496,22 @@ const App: React.FC = () => {
         }
       };
 
-      // 3. Генерация
+      // 5. Генерация
       const dataUrl = await window.htmlToImage.toPng(exportRef.current, options);
       
+      // 6. Возвращаем видео обратно, если оно было
+      if (video && tempImg) {
+        video.style.display = 'block';
+        tempImg.remove();
+      }
+      
       const link = document.createElement('a');
-      link.download = `accelerator-${Date.now()}.png`;
+      link.download = `reels-ai-${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error('Download failed', err);
-      alert('Ошибка при сохранении. Попробуйте еще раз.');
+      alert('Ошибка при сохранении. Попробуйте еще раз. ' + (err instanceof Error ? err.message : ''));
     } finally {
       setIsSaving(false);
     }
@@ -510,16 +549,15 @@ const App: React.FC = () => {
         <span className="font-soyuzx-cyr">warmup</span>
       </div>
 
-      {/* Экспортный контейнер: Теперь он в фиксированной позиции, но на слое ниже основного контента.
-          Это заставляет браузер полноценно отрисовывать его, не считая "невидимым" или "удаленным". */}
+      {/* Экспортный контейнер: смещен далеко за пределы экрана, но имеет положительный z-index для корректного рендеринга браузером */}
       <div 
         style={{ 
           position: 'fixed', 
           top: '0', 
-          left: '0', 
+          left: '-5000px', 
           width: '1080px', 
           height: '1920px', 
-          zIndex: -10,
+          zIndex: 9999,
           pointerEvents: 'none',
           overflow: 'hidden',
           background: '#000',
